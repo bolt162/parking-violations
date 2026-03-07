@@ -1,0 +1,7 @@
+/Users/gash/workspace-cpp/openmp/hello/b/CMakeFiles/hello.dir
+/Users/gash/workspace-cpp/openmp/hello/b/CMakeFiles/hello-omp.dir
+/Users/gash/workspace-cpp/openmp/hello/b/CMakeFiles/hello-omp2.dir
+/Users/gash/workspace-cpp/openmp/hello/b/CMakeFiles/hello-cout.dir
+/Users/gash/workspace-cpp/openmp/hello/b/CMakeFiles/hello-target.dir
+/Users/gash/workspace-cpp/openmp/hello/b/CMakeFiles/edit_cache.dir
+/Users/gash/workspace-cpp/openmp/hello/b/CMakeFiles/rebuild_cache.dir

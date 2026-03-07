@@ -1,0 +1,60 @@
+# Build directories
+build/
+cmake-build-*/
+dist/
+
+# CMake generated files
+CMakeCache.txt
+CMakeUserPresets.json
+CTestTestfile.cmake
+
+# Compiled binaries and libraries
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.Python
+*.egg-info/
+*.egg
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.iml
+.classpath
+.project
+.c9/
+*.launch
+.settings/
+
+# Results and generated data
+results/
+*.csv.bak
+.env
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Dependencies (if using package managers)
+node_modules/
+parking_violations_merged.csv
+
+# Project specific
+lab1/
+Parking_Violations_Data/
+mini1-memory-nyc.md

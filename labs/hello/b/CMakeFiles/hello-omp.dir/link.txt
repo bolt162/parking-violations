@@ -1,0 +1,1 @@
+/opt/homebrew/Cellar/llvm/21.1.8/bin/clang++  -O3 -fopenmp -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names "CMakeFiles/hello-omp.dir/hello-omp.cpp.o" -o hello-omp
