@@ -1,12 +1,12 @@
-#ifndef PARKING_FIELD_TYPES_HPP
-#define PARKING_FIELD_TYPES_HPP
+#ifndef PARKING_RECORD_HPP
+#define PARKING_RECORD_HPP
 
 #include <cstdint>
 #include <cstring>
 #include <unordered_map>
 #include <string>
 
-namespace parking::core {
+namespace parking {
 
 // Column indices (0-based) in the canonical merged CSV
 enum class Column : int {
@@ -58,20 +58,16 @@ enum class Column : int {
 
 constexpr int COLUMN_COUNT = 44;
 
-// ── Null sentinel values ────────────────────────────────────────────────────
-
+// Null sentinel values
 constexpr uint32_t NULL_DATE = 0;
 constexpr uint64_t NULL_UINT64 = 0;
 constexpr uint32_t NULL_UINT32 = 0;
 constexpr uint16_t NULL_UINT16 = 0;
 constexpr uint8_t  NULL_ENUM = 0;
 
-// ── Enum IDs for low-cardinality fields ─────────────────────────────────────
-//
-// Each enum uses 0 = unknown/empty. Values 1+ are assigned to known codes.
-// The lookup functions below map raw strings → uint8_t.
+// --- Enum IDs for low-cardinality fields ---
+// Each enum uses 0 = unknown/empty, 1+ for known codes.
 
-// --- Violation County (5 boroughs) ---
 namespace county {
     constexpr uint8_t UNKNOWN  = 0;
     constexpr uint8_t MN       = 1;  // Manhattan
@@ -93,7 +89,7 @@ inline uint8_t county_to_enum(const char* s, int len) {
     return county::UNKNOWN;
 }
 
-// --- Issuing Agency (25 codes, top 4 dominate 99.6%) ---
+// Issuing Agency (25 codes, top 4 dominate 99.6%)
 namespace agency {
     constexpr uint8_t UNKNOWN = 0;
     constexpr uint8_t V = 1;   // Camera/photo
@@ -155,7 +151,7 @@ inline uint8_t agency_to_enum(const char* s, int len) {
     }
 }
 
-// --- Violation In Front Of Or Opposite (6 codes) ---
+// Violation In Front Of Or Opposite (6 codes)
 namespace front_opposite {
     constexpr uint8_t UNKNOWN = 0;
     constexpr uint8_t F = 1;  // Front
@@ -177,7 +173,7 @@ inline uint8_t front_opposite_to_enum(const char* s, int len) {
     }
 }
 
-// --- Violation Legal Code (2 values) ---
+// Violation Legal Code (2 values)
 namespace legal_code {
     constexpr uint8_t UNKNOWN = 0;
     constexpr uint8_t T = 1;
@@ -188,7 +184,7 @@ inline uint8_t legal_code_to_enum(const char* s, int len) {
     return legal_code::UNKNOWN;
 }
 
-// --- Unregistered Vehicle (2 values) ---
+// Unregistered Vehicle (2 values)
 namespace unreg_vehicle {
     constexpr uint8_t UNKNOWN = 0;
     constexpr uint8_t ZERO = 1;
@@ -199,14 +195,10 @@ inline uint8_t unreg_vehicle_to_enum(const char* s, int len) {
     return unreg_vehicle::UNKNOWN;
 }
 
-// --- Registration State (65 codes) ---
-// Uses a static lookup table built on first use.
-
+// Registration State (65 codes)
 inline uint8_t state_to_enum(const char* s, int len) {
-    // Compact 2-char state into a 16-bit key for fast lookup
     static const std::unordered_map<uint16_t, uint8_t> table = []() {
         std::unordered_map<uint16_t, uint8_t> m;
-        // Pack 2 chars into uint16_t: (c0 << 8) | c1
         auto pack = [](const char* code) -> uint16_t {
             return (static_cast<uint16_t>(code[0]) << 8) | code[1];
         };
@@ -220,7 +212,7 @@ inline uint8_t state_to_enum(const char* s, int len) {
             "NS","MB","FO","QB","QC"
         };
         for (uint8_t i = 0; i < sizeof(codes)/sizeof(codes[0]); ++i) {
-            m[pack(codes[i])] = i + 1;  // 1-based
+            m[pack(codes[i])] = i + 1;
         }
         return m;
     }();
@@ -231,8 +223,7 @@ inline uint8_t state_to_enum(const char* s, int len) {
     return (it != table.end()) ? it->second : 0;
 }
 
-// --- Plate Type (66 codes) ---
-
+// Plate Type (66 codes)
 inline uint8_t plate_type_to_enum(const char* s, int len) {
     static const std::unordered_map<std::string, uint8_t> table = []() {
         std::unordered_map<std::string, uint8_t> m;
@@ -256,8 +247,7 @@ inline uint8_t plate_type_to_enum(const char* s, int len) {
     return (it != table.end()) ? it->second : 0;
 }
 
-// --- Issuer Squad (42 codes) ---
-
+// Issuer Squad (42 codes)
 inline uint8_t squad_to_enum(const char* s, int len) {
     static const std::unordered_map<std::string, uint8_t> table = []() {
         std::unordered_map<std::string, uint8_t> m;
@@ -278,6 +268,108 @@ inline uint8_t squad_to_enum(const char* s, int len) {
     return (it != table.end()) ? it->second : 0;
 }
 
-} // namespace parking::core
+// --- Text field references ---
 
-#endif // PARKING_FIELD_TYPES_HPP
+constexpr int NUM_TEXT_FIELDS = 21;
+
+// Indexes into ViolationRecord::str_offsets[] and str_lengths[]
+enum StringField : int {
+    SF_PLATE_ID                = 0,
+    SF_VEHICLE_BODY_TYPE       = 1,
+    SF_VEHICLE_MAKE            = 2,
+    SF_VIOLATION_LOCATION      = 3,
+    SF_ISSUER_COMMAND          = 4,
+    SF_VIOLATION_TIME          = 5,
+    SF_TIME_FIRST_OBSERVED     = 6,
+    SF_HOUSE_NUMBER            = 7,
+    SF_STREET_NAME             = 8,
+    SF_INTERSECTING_STREET     = 9,
+    SF_SUB_DIVISION            = 10,
+    SF_DAYS_PARKING_IN_EFFECT  = 11,
+    SF_FROM_HOURS_IN_EFFECT    = 12,
+    SF_TO_HOURS_IN_EFFECT      = 13,
+    SF_VEHICLE_COLOR           = 14,
+    SF_METER_NUMBER            = 15,
+    SF_VIOLATION_POST_CODE     = 16,
+    SF_VIOLATION_DESCRIPTION   = 17,
+    SF_NO_STANDING_STOPPING    = 18,
+    SF_HYDRANT_VIOLATION       = 19,
+    SF_DOUBLE_PARKING          = 20,
+};
+
+// Human-readable name for a StringField index (for debug output).
+inline const char* text_field_name(int idx) {
+    static const char* names[NUM_TEXT_FIELDS] = {
+        "Plate ID",
+        "Vehicle Body Type",
+        "Vehicle Make",
+        "Violation Location",
+        "Issuer Command",
+        "Violation Time",
+        "Time First Observed",
+        "House Number",
+        "Street Name",
+        "Intersecting Street",
+        "Sub Division",
+        "Days Parking In Effect",
+        "From Hours In Effect",
+        "To Hours In Effect",
+        "Vehicle Color",
+        "Meter Number",
+        "Violation Post Code",
+        "Violation Description",
+        "No Standing or Stopping Violation",
+        "Hydrant Violation",
+        "Double Parking Violation",
+    };
+    if (idx >= 0 && idx < NUM_TEXT_FIELDS) return names[idx];
+    return "Unknown";
+}
+
+// --- Violation record struct ---
+
+// A single parking violation record using primitive types only.
+// Low-cardinality text fields are encoded as uint8_t enum IDs.
+// High-cardinality string fields are stored in an external TextPool
+// as (offset, length) pairs -- use StringField enum to index.
+// Layout: Array-of-Structs (AoS), one struct per CSV row.
+struct ViolationRecord {
+    // Numeric fields
+    uint64_t summons_number;            // 10-digit ID
+    uint32_t issue_date;                // YYYYMMDD
+    uint32_t street_code1;
+    uint32_t street_code2;
+    uint32_t street_code3;
+    uint32_t vehicle_expiration_date;   // YYYYMMDD
+    uint32_t issuer_code;
+    uint32_t date_first_observed;       // YYYYMMDD
+    uint16_t violation_code;
+    uint16_t violation_precinct;
+    uint16_t issuer_precinct;
+    uint16_t law_section;
+    uint16_t vehicle_year;
+    uint16_t feet_from_curb;
+    uint16_t fiscal_year;
+
+    // Enum-encoded fields
+    uint8_t  registration_state;        // 65 codes
+    uint8_t  plate_type;                // 66 codes
+    uint8_t  issuing_agency;            // 25 codes
+    uint8_t  issuer_squad;              // 42 codes
+    uint8_t  violation_county;          // 5 boroughs
+    uint8_t  violation_front_opposite;  // 6 codes
+    uint8_t  violation_legal_code;      // 2 values
+    uint8_t  unregistered_vehicle;      // 2 values
+
+    // String field references (into external TextPool)
+    uint32_t str_offsets[NUM_TEXT_FIELDS];
+    uint8_t  str_lengths[NUM_TEXT_FIELDS]; // max 71
+
+    ViolationRecord();
+
+    static constexpr int FIELD_COUNT = 44;
+};
+
+} // namespace parking
+
+#endif // PARKING_RECORD_HPP

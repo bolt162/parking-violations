@@ -1,14 +1,9 @@
 # Library source files
 set(LIB_SOURCES
-    core/violation_record.cpp
-    io/csv_parser.cpp
-    io/csv_reader.cpp
-    io/file_loader.cpp
-    data/data_store.cpp
-    search/linear_search.cpp
-    search/indexed_search.cpp
-    search/parallel_search.cpp
-    api/parking_api.cpp
+    record.cpp
+    parking.cpp
+    csv_reader.cpp
+    search.cpp
 )
 
 # Build the parking library

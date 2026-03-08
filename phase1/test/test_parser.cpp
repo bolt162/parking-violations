@@ -3,13 +3,10 @@
 #include <cassert>
 #include <cstdio>
 
-#include "core/violation_record.hpp"
-#include "core/field_types.hpp"
-#include "core/text_ref.hpp"
-#include "io/csv_parser.hpp"
+#include "record.hpp"
+#include "csv_reader.hpp"
 
-using namespace parking::io;
-using namespace parking::core;
+using namespace parking;
 
 static int tests_passed = 0;
 static int tests_failed = 0;
@@ -44,7 +41,7 @@ static int tests_failed = 0;
         tests_failed++; tests_passed--; \
     } else { PASS(); }
 
-// ── Test ViolationRecord ────────────────────────────────────────────────────
+// --- Test ViolationRecord ---
 
 void test_record_size() {
     std::cout << "\n=== ViolationRecord ===" << std::endl;
@@ -52,7 +49,6 @@ void test_record_size() {
     TEST("sizeof(ViolationRecord)")
     size_t sz = sizeof(ViolationRecord);
     std::cout << "size=" << sz << " bytes ... ";
-    // With TextPool approach: ~168 bytes (numeric+enum+str_offsets+str_lengths+vtable)
     if (sz >= 100 && sz <= 250) {
         PASS();
     } else {
@@ -82,12 +78,11 @@ void test_record_zero_init() {
     ASSERT_EQ(rec.violation_county, 0)
 }
 
-// ── Test CsvParser::parse_line ──────────────────────────────────────────────
+// --- Test CsvParser::parse_line ---
 
 void test_parse_simple_quoted() {
     std::cout << "\n=== CsvParser::parse_line ===" << std::endl;
 
-    // Simple quoted fields
     const char* line = "\"ABC\",\"DEF\",\"GHI\"";
     int len = std::strlen(line);
     FieldView fields[MAX_FIELDS];
@@ -107,7 +102,6 @@ void test_parse_simple_quoted() {
 }
 
 void test_parse_empty_fields() {
-    // Empty fields: "A",,,"D"
     const char* line = "\"A\",,,\"D\"";
     int len = std::strlen(line);
     FieldView fields[MAX_FIELDS];
@@ -129,7 +123,6 @@ void test_parse_empty_fields() {
 }
 
 void test_parse_real_fy2025_row() {
-    // Actual row from FY2025 (simplified — first 10 fields)
     const char* line =
         "\"9139716661\",\"LKS7820\",\"NY\",\"PAS\",\"20240702\","
         "\"38\",\"SUBN\",\"TOYOT\",\"T\",\"26790\"";
@@ -181,7 +174,6 @@ void test_parse_real_fy2025_row() {
 }
 
 void test_parse_full_44_column_row() {
-    // A full 44-column row from the merged CSV (all fields quoted)
     const char* line =
         "\"9139716661\",\"LKS7820\",\"NY\",\"PAS\",\"20240702\","
         "\"38\",\"SUBN\",\"TOYOT\",\"T\",\"26790\","
@@ -230,7 +222,7 @@ void test_parse_full_44_column_row() {
     ASSERT_EQ(sq, 10)  // J is the 10th code (1-based)
 }
 
-// ── Test type conversions ───────────────────────────────────────────────────
+// --- Test type conversions ---
 
 void test_type_conversions() {
     std::cout << "\n=== Type Conversions ===" << std::endl;
@@ -269,7 +261,7 @@ void test_type_conversions() {
     ASSERT_STREQ(empty, "")
 }
 
-// ── Test null detection ─────────────────────────────────────────────────────
+// --- Test null detection ---
 
 void test_null_detection() {
     std::cout << "\n=== Null Detection ===" << std::endl;
@@ -293,7 +285,7 @@ void test_null_detection() {
     ASSERT_FALSE(CsvParser::is_null_date("123", 3))
 }
 
-// ── Test enum lookups ───────────────────────────────────────────────────────
+// --- Test enum lookups ---
 
 void test_enum_lookups() {
     std::cout << "\n=== Enum Lookups ===" << std::endl;
@@ -367,8 +359,6 @@ void test_enum_lookups() {
     TEST("squad empty")
     ASSERT_EQ(squad_to_enum("", 0), 0)
 }
-
-// ── Main ────────────────────────────────────────────────────────────────────
 
 int main() {
     std::cout << "======================================" << std::endl;

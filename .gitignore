@@ -2,6 +2,7 @@
 build/
 cmake-build-*/
 dist/
+labs/
 
 # CMake generated files
 CMakeCache.txt

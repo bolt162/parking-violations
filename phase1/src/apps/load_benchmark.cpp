@@ -3,8 +3,8 @@
 #include <string>
 #include <cstdlib>
 
-#include "api/parking_api.hpp"
-#include "core/violation_record.hpp"
+#include "parking.hpp"
+#include "record.hpp"
 #include "benchmark_harness.hpp"
 
 using namespace parking;
@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
     std::cout << "  File: " << filepath << std::endl;
     std::cout << "  Iterations: " << iterations << std::endl;
     std::cout << "  sizeof(ViolationRecord) = "
-              << sizeof(core::ViolationRecord) << " bytes" << std::endl;
+              << sizeof(ViolationRecord) << " bytes" << std::endl;
     std::cout << "============================================\n" << std::endl;
 
     if (iterations < 1) {
@@ -36,17 +36,16 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // ── Benchmark: Full load (read + parse + populate) ───────────────────
-
+    // Benchmark: Full load (read + parse + populate)
     std::vector<double> load_times;
     load_times.reserve(iterations);
 
     size_t record_count = 0;
 
-    // Warmup run (also determines record count)
+    // Warmup run
     {
         std::cout << "Warmup run..." << std::endl;
-        api::ParkingAPI engine;
+        ParkingAPI engine;
         record_count = engine.load(filepath);
         std::cout << "  Records: " << record_count << std::endl;
         std::cout << "  Peak RSS after warmup: "
@@ -57,7 +56,7 @@ int main(int argc, char** argv) {
     std::cout << "Running " << iterations << " timed iterations..." << std::endl;
 
     for (int i = 0; i < iterations; ++i) {
-        api::ParkingAPI engine;
+        ParkingAPI engine;
 
         auto t0 = std::chrono::high_resolution_clock::now();
         engine.load(filepath);
@@ -73,21 +72,20 @@ int main(int argc, char** argv) {
                   << std::endl;
     }
 
-    // ── Results ──────────────────────────────────────────────────────────
-
+    // Results
     std::cout << std::endl;
     auto stats = benchmark::compute_stats(load_times);
 
-    std::cout << "── Load Benchmark Results ──" << std::endl;
+    std::cout << "-- Load Benchmark Results --" << std::endl;
     benchmark::print_stats("Full load", stats);
     std::cout << std::endl;
 
     double mean_throughput = record_count / (stats.mean / 1000.0);
-    double mem_gb = (record_count * sizeof(core::ViolationRecord))
+    double mem_gb = (record_count * sizeof(ViolationRecord))
                     / (1024.0 * 1024.0 * 1024.0);
 
     std::cout << "  Records:           " << record_count << std::endl;
-    std::cout << "  Struct size:       " << sizeof(core::ViolationRecord) << " bytes" << std::endl;
+    std::cout << "  Struct size:       " << sizeof(ViolationRecord) << " bytes" << std::endl;
     std::cout << "  Mean throughput:   " << std::fixed << std::setprecision(0)
               << mean_throughput << " records/sec" << std::endl;
     std::cout << "  In-memory structs: " << std::setprecision(2)
@@ -95,8 +93,7 @@ int main(int argc, char** argv) {
     std::cout << "  Peak RSS:          " << std::setprecision(1)
               << benchmark::get_peak_rss_mb() << " MB" << std::endl;
 
-    // ── CSV output ───────────────────────────────────────────────────────
-
+    // CSV output
     if (!csv_out.empty()) {
         std::ofstream ofs(csv_out);
         benchmark::print_csv_header(ofs);

@@ -4,13 +4,13 @@
 #include <cstdlib>
 #include <omp.h>
 
-#include "api/parking_api.hpp"
-#include "core/violation_record.hpp"
+#include "parking.hpp"
+#include "record.hpp"
 #include "benchmark_harness.hpp"
 
 using namespace parking;
 
-/// Parse a comma-separated list of integers
+// Parse a comma-separated list of integers
 static std::vector<int> parse_int_list(const std::string& s) {
     std::vector<int> result;
     size_t pos = 0;
@@ -24,7 +24,7 @@ static std::vector<int> parse_int_list(const std::string& s) {
     return result;
 }
 
-/// Run load benchmark at a given thread count, return stats
+// Run load benchmark at a given thread count, return stats
 static benchmark::Stats run_load_at_threads(
     const std::string& filepath, int iterations, int thread_count,
     size_t& record_count_out)
@@ -38,7 +38,7 @@ static benchmark::Stats run_load_at_threads(
     // Warmup
     {
         std::cout << "  Warmup..." << std::endl;
-        api::ParkingAPI engine;
+        ParkingAPI engine;
         record_count_out = engine.load(filepath);
         std::cout << "  Records: " << record_count_out << std::endl;
     }
@@ -51,7 +51,7 @@ static benchmark::Stats run_load_at_threads(
               << std::endl;
 
     for (int i = 0; i < iterations; ++i) {
-        api::ParkingAPI engine;
+        ParkingAPI engine;
 
         auto t0 = std::chrono::high_resolution_clock::now();
         engine.load(filepath);
@@ -80,11 +80,14 @@ int main(int argc, char** argv) {
                   << std::endl;
         std::cerr << "  iterations:          timed runs (default: 12)" << std::endl;
         std::cerr << "  output.csv:          write results to CSV file" << std::endl;
-        std::cerr << "  --threads=N:         set OMP thread count" << std::endl;
+        std::cerr << "  --threads=N:         set OMP thread count (default: 6)" << std::endl;
         std::cerr << "  --thread-scaling=..: run at each thread count sequentially"
                   << std::endl;
         return 1;
     }
+
+    // Default to 6 threads (optimal per benchmarks)
+    omp_set_num_threads(6);
 
     const std::string filepath = argv[1];
     int iterations = 12;
@@ -121,7 +124,7 @@ int main(int argc, char** argv) {
         std::cout << "  Threads: " << omp_get_max_threads() << std::endl;
     }
     std::cout << "  sizeof(ViolationRecord) = "
-              << sizeof(core::ViolationRecord) << " bytes" << std::endl;
+              << sizeof(ViolationRecord) << " bytes" << std::endl;
     std::cout << "============================================\n" << std::endl;
 
     if (iterations < 1) {
@@ -129,7 +132,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // ── Thread-scaling mode ──────────────────────────────────────────────
+    // -- Thread-scaling mode --
 
     if (!scaling_threads.empty()) {
         for (int t : scaling_threads) {
@@ -139,7 +142,6 @@ int main(int argc, char** argv) {
 
             double mean_throughput = record_count / (stats.mean / 1000.0);
 
-            // Write per-thread CSV
             if (!csv_out.empty()) {
                 std::string per_csv = csv_out;
                 size_t dot = per_csv.rfind(".csv");
@@ -171,17 +173,17 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    // ── Single-run mode (original behavior) ──────────────────────────────
+    // -- Single-run mode --
 
     std::vector<double> load_times;
     load_times.reserve(iterations);
 
     size_t record_count = 0;
 
-    // Warmup run (also determines record count)
+    // Warmup run
     {
         std::cout << "Warmup run..." << std::endl;
-        api::ParkingAPI engine;
+        ParkingAPI engine;
         record_count = engine.load(filepath);
         std::cout << "  Records: " << record_count << std::endl;
         std::cout << "  Peak RSS after warmup: "
@@ -192,7 +194,7 @@ int main(int argc, char** argv) {
     std::cout << "Running " << iterations << " timed iterations..." << std::endl;
 
     for (int i = 0; i < iterations; ++i) {
-        api::ParkingAPI engine;
+        ParkingAPI engine;
 
         auto t0 = std::chrono::high_resolution_clock::now();
         engine.load(filepath);
@@ -208,21 +210,21 @@ int main(int argc, char** argv) {
                   << std::endl;
     }
 
-    // ── Results ──────────────────────────────────────────────────────────
+    // -- Results --
 
     std::cout << std::endl;
     auto stats = benchmark::compute_stats(load_times);
 
-    std::cout << "── Load Benchmark Results ──" << std::endl;
+    std::cout << "-- Load Benchmark Results --" << std::endl;
     benchmark::print_stats("Full load", stats);
     std::cout << std::endl;
 
     double mean_throughput = record_count / (stats.mean / 1000.0);
-    double mem_gb = (record_count * sizeof(core::ViolationRecord))
+    double mem_gb = (record_count * sizeof(ViolationRecord))
                     / (1024.0 * 1024.0 * 1024.0);
 
     std::cout << "  Records:           " << record_count << std::endl;
-    std::cout << "  Struct size:       " << sizeof(core::ViolationRecord) << " bytes" << std::endl;
+    std::cout << "  Struct size:       " << sizeof(ViolationRecord) << " bytes" << std::endl;
     std::cout << "  Mean throughput:   " << std::fixed << std::setprecision(0)
               << mean_throughput << " records/sec" << std::endl;
     std::cout << "  In-memory structs: " << std::setprecision(2)
@@ -230,7 +232,7 @@ int main(int argc, char** argv) {
     std::cout << "  Peak RSS:          " << std::setprecision(1)
               << benchmark::get_peak_rss_mb() << " MB" << std::endl;
 
-    // ── CSV output ───────────────────────────────────────────────────────
+    // -- CSV output --
 
     if (!csv_out.empty()) {
         std::ofstream ofs(csv_out);
@@ -238,7 +240,7 @@ int main(int argc, char** argv) {
 
         benchmark::BenchmarkEntry entry;
         entry.name = "full_load";
-        entry.engine = "serial";
+        entry.engine = "parallel";
         entry.time_stats = stats;
         entry.records_scanned = record_count;
         entry.records_matched = record_count;

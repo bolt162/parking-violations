@@ -1,7 +1,7 @@
-#include "core/violation_record.hpp"
+#include "record.hpp"
 #include <cstring>
 
-namespace parking::core {
+namespace parking {
 
 ViolationRecord::ViolationRecord()
     : summons_number{0},
@@ -30,4 +30,4 @@ ViolationRecord::ViolationRecord()
 {
 }
 
-} // namespace parking::core
+} // namespace parking

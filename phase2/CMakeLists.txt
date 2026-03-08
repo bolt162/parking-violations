@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(parking_violations CXX)
 
-# OpenMP for Phase 2 parallelization
 # Apple Clang needs hints to find Homebrew's libomp
 if(APPLE)
     execute_process(
