@@ -4,6 +4,8 @@
 #include <iostream>
 #include <chrono>
 #include <utility>
+#include <limits>
+#include <omp.h>
 
 namespace parking {
 
@@ -87,6 +89,52 @@ size_t ParkingAPI::load(const std::string& filepath) {
     }
 
     return count;
+}
+
+// SIMD-friendly queries (pure reductions)
+
+CountResult ParkingAPI::count_in_date_range(uint32_t start_date, uint32_t end_date) {
+    CountResult result;
+    auto t0 = std::chrono::high_resolution_clock::now();
+
+    const auto& recs = store_.records();
+    size_t n = recs.size();
+    result.total_scanned = n;
+
+    size_t count = 0;
+    #pragma omp parallel for reduction(+:count)
+    for (size_t i = 0; i < n; i++) {
+        count += (recs[i].issue_date >= start_date && recs[i].issue_date <= end_date) ? 1 : 0;
+    }
+
+    result.count = count;
+    auto t1 = std::chrono::high_resolution_clock::now();
+    result.elapsed_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+    return result;
+}
+
+DateRangeResult ParkingAPI::find_date_extremes() {
+    DateRangeResult result;
+    auto t0 = std::chrono::high_resolution_clock::now();
+
+    const auto& recs = store_.records();
+    size_t n = recs.size();
+    result.total_scanned = n;
+
+    uint32_t min_date = std::numeric_limits<uint32_t>::max();
+    uint32_t max_date = 0;
+
+    #pragma omp parallel for reduction(min:min_date) reduction(max:max_date)
+    for (size_t i = 0; i < n; i++) {
+        if (recs[i].issue_date < min_date) min_date = recs[i].issue_date;
+        if (recs[i].issue_date > max_date) max_date = recs[i].issue_date;
+    }
+
+    result.min_date = min_date;
+    result.max_date = max_date;
+    auto t1 = std::chrono::high_resolution_clock::now();
+    result.elapsed_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+    return result;
 }
 
 // Filter queries

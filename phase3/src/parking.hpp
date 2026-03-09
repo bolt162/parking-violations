@@ -25,6 +25,21 @@ struct AggregateResult {
     double elapsed_ms = 0.0;
 };
 
+// Count-only result (SIMD-friendly query)
+struct CountResult {
+    size_t count = 0;
+    size_t total_scanned = 0;
+    double elapsed_ms = 0.0;
+};
+
+// Date range result (SIMD-friendly query)
+struct DateRangeResult {
+    uint32_t min_date = 0;
+    uint32_t max_date = 0;
+    size_t total_scanned = 0;
+    double elapsed_ms = 0.0;
+};
+
 // Main API for parking violations engine
 class ParkingAPI {
 public:
@@ -33,7 +48,11 @@ public:
     // Load CSV file
     size_t load(const std::string& filepath);
 
-    // Filter queries
+    // SIMD-friendly queries (pure reductions, can be auto-vectorized)
+    CountResult count_in_date_range(uint32_t start_date, uint32_t end_date);
+    DateRangeResult find_date_extremes();
+
+    // Filter queries (conditional collection, cannot be vectorized)
     SearchResult find_by_date_range(uint32_t start_date, uint32_t end_date);
     SearchResult find_by_violation_code(uint16_t code);
     SearchResult find_by_plate(const char* plate_id);

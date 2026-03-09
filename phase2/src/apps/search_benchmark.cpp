@@ -186,8 +186,81 @@ int main(int argc, char** argv) {
         results.push_back(entry);
     };
 
+    // Helper: benchmark a SIMD-friendly query (count only)
+    auto run_simd_count = [&](const std::string& id, auto query_fn, int thread_count) {
+        std::cout << "-- " << id << " (SIMD-friendly) --" << std::endl;
+
+        auto warmup = query_fn();
+        size_t scanned = warmup.total_scanned;
+        size_t matched = warmup.count;
+
+        std::vector<double> times;
+        times.reserve(iterations);
+        for (int i = 0; i < iterations; ++i) {
+            auto t0 = std::chrono::high_resolution_clock::now();
+            auto res = query_fn();
+            auto t1 = std::chrono::high_resolution_clock::now();
+            times.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
+        }
+
+        auto stats = benchmark::compute_stats(times);
+        double throughput = scanned / (stats.mean / 1000.0);
+        benchmark::print_stats(id, stats);
+        std::cout << "    Scanned: " << scanned
+                  << "  Count: " << matched
+                  << "  Throughput: " << std::fixed << std::setprecision(0)
+                  << throughput << " rec/s\n" << std::endl;
+
+        benchmark::BenchmarkEntry entry;
+        entry.name = id;
+        entry.engine = std::string(engine_name) + "_t" + std::to_string(thread_count);
+        entry.time_stats = stats;
+        entry.records_scanned = scanned;
+        entry.records_matched = matched;
+        entry.throughput = throughput;
+        results.push_back(entry);
+    };
+
+    // Helper: benchmark a SIMD-friendly minmax query
+    auto run_simd_minmax = [&](const std::string& id, auto query_fn, int thread_count) {
+        std::cout << "-- " << id << " (SIMD-friendly) --" << std::endl;
+
+        auto warmup = query_fn();
+        size_t scanned = warmup.total_scanned;
+
+        std::vector<double> times;
+        times.reserve(iterations);
+        for (int i = 0; i < iterations; ++i) {
+            auto t0 = std::chrono::high_resolution_clock::now();
+            auto res = query_fn();
+            auto t1 = std::chrono::high_resolution_clock::now();
+            times.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
+        }
+
+        auto stats = benchmark::compute_stats(times);
+        double throughput = scanned / (stats.mean / 1000.0);
+        benchmark::print_stats(id, stats);
+        std::cout << "    Scanned: " << scanned
+                  << "  min=" << warmup.min_date << ", max=" << warmup.max_date
+                  << "  Throughput: " << std::fixed << std::setprecision(0)
+                  << throughput << " rec/s\n" << std::endl;
+
+        benchmark::BenchmarkEntry entry;
+        entry.name = id;
+        entry.engine = std::string(engine_name) + "_t" + std::to_string(thread_count);
+        entry.time_stats = stats;
+        entry.records_scanned = scanned;
+        entry.records_matched = 2;
+        entry.throughput = throughput;
+        results.push_back(entry);
+    };
+
     // Helper: run all benchmarks at a given thread count
     auto run_all = [&](int thread_count) {
+        // SIMD-friendly queries first
+        run_simd_count("simd_count", [&]() { return engine.count_in_date_range(20240101, 20241231); }, thread_count);
+        run_simd_minmax("simd_minmax", [&]() { return engine.find_date_extremes(); }, thread_count);
+
         run_search("B1_date_narrow", [&]() { return engine.find_by_date_range(20240101, 20240131); }, thread_count);
         run_search("B2_date_wide",   [&]() { return engine.find_by_date_range(20240101, 20241231); }, thread_count);
         run_search("B3_code_common", [&]() { return engine.find_by_violation_code(46); }, thread_count);

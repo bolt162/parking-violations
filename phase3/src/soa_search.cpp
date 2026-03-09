@@ -3,8 +3,64 @@
 #include <cstring>
 #include <array>
 #include <omp.h>
+#include <limits>
 
 namespace parking {
+
+// ============================================================
+// SIMD-FRIENDLY QUERIES (no conditional collection, pure reduction)
+// These can be auto-vectorized by the compiler
+// ============================================================
+
+CountResult count_in_date_range(const SoADataStore& store, uint32_t start, uint32_t end) {
+    CountResult result;
+    auto t0 = std::chrono::high_resolution_clock::now();
+
+    size_t n = store.size();
+    result.total_scanned = n;
+    const uint32_t* dates = store.issue_dates.data();
+
+    // Simple reduction - compiler can auto-vectorize this
+    size_t count = 0;
+    #pragma omp parallel for reduction(+:count)
+    for (size_t i = 0; i < n; i++) {
+        count += (dates[i] >= start && dates[i] <= end) ? 1 : 0;
+    }
+
+    result.count = count;
+    auto t1 = std::chrono::high_resolution_clock::now();
+    result.elapsed_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+    return result;
+}
+
+DateRangeResult find_date_extremes(const SoADataStore& store) {
+    DateRangeResult result;
+    auto t0 = std::chrono::high_resolution_clock::now();
+
+    size_t n = store.size();
+    result.total_scanned = n;
+    const uint32_t* dates = store.issue_dates.data();
+
+    // Min/max reduction - compiler can auto-vectorize this
+    uint32_t min_date = std::numeric_limits<uint32_t>::max();
+    uint32_t max_date = 0;
+
+    #pragma omp parallel for reduction(min:min_date) reduction(max:max_date)
+    for (size_t i = 0; i < n; i++) {
+        if (dates[i] < min_date) min_date = dates[i];
+        if (dates[i] > max_date) max_date = dates[i];
+    }
+
+    result.min_date = min_date;
+    result.max_date = max_date;
+    auto t1 = std::chrono::high_resolution_clock::now();
+    result.elapsed_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+    return result;
+}
+
+// ============================================================
+// FILTER QUERIES (conditional collection, cannot be vectorized)
+// ============================================================
 
 SearchResult search_by_date_range(const SoADataStore& store, uint32_t start, uint32_t end) {
     SearchResult result;
@@ -12,25 +68,25 @@ SearchResult search_by_date_range(const SoADataStore& store, uint32_t start, uin
 
     size_t n = store.size();
     result.total_scanned = n;
+    const uint32_t* dates = store.issue_dates.data();
 
+    // Parallel collection with thread-local vectors
     int num_threads = omp_get_max_threads();
     std::vector<std::vector<size_t>> thread_results(num_threads);
 
     #pragma omp parallel
     {
         int tid = omp_get_thread_num();
-        std::vector<size_t>& local = thread_results[tid];
+        auto& local = thread_results[tid];
 
         #pragma omp for
         for (size_t i = 0; i < n; i++) {
-            uint32_t date = store.issue_dates[i];
-            if (date >= start && date <= end) {
+            if (dates[i] >= start && dates[i] <= end) {
                 local.push_back(i);
             }
         }
     }
 
-    // Merge results
     for (int t = 0; t < num_threads; t++) {
         result.indices.insert(result.indices.end(),
                               thread_results[t].begin(),
@@ -42,6 +98,7 @@ SearchResult search_by_date_range(const SoADataStore& store, uint32_t start, uin
     return result;
 }
 
+// Simple parallel search for other queries
 SearchResult search_by_violation_code(const SoADataStore& store, uint16_t code) {
     SearchResult result;
     auto t0 = std::chrono::high_resolution_clock::now();
@@ -55,7 +112,7 @@ SearchResult search_by_violation_code(const SoADataStore& store, uint16_t code) 
     #pragma omp parallel
     {
         int tid = omp_get_thread_num();
-        std::vector<size_t>& local = thread_results[tid];
+        auto& local = thread_results[tid];
 
         #pragma omp for
         for (size_t i = 0; i < n; i++) {
@@ -89,7 +146,7 @@ SearchResult search_by_plate(const SoADataStore& store, const char* plate, int l
     #pragma omp parallel
     {
         int tid = omp_get_thread_num();
-        std::vector<size_t>& local = thread_results[tid];
+        auto& local = thread_results[tid];
 
         #pragma omp for
         for (size_t i = 0; i < n; i++) {
@@ -126,7 +183,7 @@ SearchResult search_by_state(const SoADataStore& store, uint8_t state) {
     #pragma omp parallel
     {
         int tid = omp_get_thread_num();
-        std::vector<size_t>& local = thread_results[tid];
+        auto& local = thread_results[tid];
 
         #pragma omp for
         for (size_t i = 0; i < n; i++) {
@@ -160,7 +217,7 @@ SearchResult search_by_county(const SoADataStore& store, uint8_t county) {
     #pragma omp parallel
     {
         int tid = omp_get_thread_num();
-        std::vector<size_t>& local = thread_results[tid];
+        auto& local = thread_results[tid];
 
         #pragma omp for
         for (size_t i = 0; i < n; i++) {

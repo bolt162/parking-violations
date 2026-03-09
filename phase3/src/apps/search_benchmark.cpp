@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <vector>
 #include <string>
+#include <algorithm>
 #include "parking.hpp"
 #include "record.hpp"
 #include "benchmark_harness.hpp"
@@ -108,7 +109,61 @@ int main(int argc, char** argv) {
         results.push_back(entry);
     };
 
-    std::cout << "=== FILTER QUERIES ===\n" << std::endl;
+    std::cout << "=== SIMD-FRIENDLY QUERIES (pure reductions) ===\n" << std::endl;
+
+    // SIMD Q1: Count in date range (no index collection)
+    {
+        std::cout << "SIMD: Count violations in 2024 (count only, no indices)" << std::endl;
+        auto warmup = engine.count_in_date_range(20240101, 20241231);
+
+        std::vector<double> times;
+        for (int i = 0; i < iterations; i++) {
+            auto t0 = std::chrono::high_resolution_clock::now();
+            engine.count_in_date_range(20240101, 20241231);
+            auto t1 = std::chrono::high_resolution_clock::now();
+            times.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
+        }
+
+        auto stats = compute_stats(times);
+        std::cout << "  -> " << warmup.count << " violations counted" << std::endl;
+        std::cout << "  -> " << std::fixed << std::setprecision(2) << stats.mean << " ms\n" << std::endl;
+
+        BenchmarkEntry entry;
+        entry.name = "simd_count";
+        entry.time_stats = stats;
+        entry.records_matched = warmup.count;
+        entry.records_scanned = count;
+        entry.throughput = count / (stats.mean / 1000.0);
+        results.push_back(entry);
+    }
+
+    // SIMD Q2: Find min/max date (reduction)
+    {
+        std::cout << "SIMD: Find earliest and latest violation dates" << std::endl;
+        auto warmup = engine.find_date_extremes();
+
+        std::vector<double> times;
+        for (int i = 0; i < iterations; i++) {
+            auto t0 = std::chrono::high_resolution_clock::now();
+            engine.find_date_extremes();
+            auto t1 = std::chrono::high_resolution_clock::now();
+            times.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
+        }
+
+        auto stats = compute_stats(times);
+        std::cout << "  -> min=" << warmup.min_date << ", max=" << warmup.max_date << std::endl;
+        std::cout << "  -> " << std::fixed << std::setprecision(2) << stats.mean << " ms\n" << std::endl;
+
+        BenchmarkEntry entry;
+        entry.name = "simd_minmax";
+        entry.time_stats = stats;
+        entry.records_matched = 2;  // min and max
+        entry.records_scanned = count;
+        entry.throughput = count / (stats.mean / 1000.0);
+        results.push_back(entry);
+    }
+
+    std::cout << "=== FILTER QUERIES (collect indices) ===\n" << std::endl;
 
     // Q1: Narrow date range (low selectivity)
     run_filter("date_1month",

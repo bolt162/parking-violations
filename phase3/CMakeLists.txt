@@ -18,7 +18,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -L/opt/homebrew/opt/llvm/
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${OpenMP_ROOT}/lib -lomp")
 
 # Compiler flags
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+# -Rpass=loop-vectorize shows which loops were vectorized
+# -Rpass-missed=loop-vectorize shows which weren't and why
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Rpass=loop-vectorize -Rpass-missed=loop-vectorize")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DDEBUG")
 
 # Default to Release build

@@ -113,6 +113,21 @@ struct AggregateResult {
     double elapsed_ms = 0.0;
 };
 
+// Count-only result (SIMD-friendly query)
+struct CountResult {
+    size_t count = 0;
+    size_t total_scanned = 0;
+    double elapsed_ms = 0.0;
+};
+
+// Date range result (SIMD-friendly query)
+struct DateRangeResult {
+    uint32_t min_date = 0;
+    uint32_t max_date = 0;
+    size_t total_scanned = 0;
+    double elapsed_ms = 0.0;
+};
+
 // Forward declaration -- defined in search.hpp
 class SearchEngine;
 
@@ -135,6 +150,11 @@ public:
 
     /// Load a CSV file into the engine.
     size_t load(const std::string& filepath);
+
+    // --- SIMD-friendly queries (pure reductions) ---
+
+    CountResult count_in_date_range(uint32_t start_date, uint32_t end_date);
+    DateRangeResult find_date_extremes();
 
     // --- Filter queries ---
 
