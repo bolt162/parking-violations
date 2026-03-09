@@ -16,6 +16,7 @@ CTestTestfile.cmake
 *.dylib
 *.dll
 *.exe
+*.cache
 
 # Python
 __pycache__/

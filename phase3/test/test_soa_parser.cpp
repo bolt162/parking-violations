@@ -27,9 +27,9 @@ int main() {
 
     // Test null date
     std::cout << "\nNull date tests:" << std::endl;
-    std::cout << "  is_null_date('', 0) = " << is_null_date("", 0) << std::endl;
-    std::cout << "  is_null_date('0', 1) = " << is_null_date("0", 1) << std::endl;
-    std::cout << "  is_null_date('20240101', 8) = " << is_null_date("20240101", 8) << std::endl;
+    std::cout << "  is_null_date('', 0) = " << csv::is_null_date("", 0) << std::endl;
+    std::cout << "  is_null_date('0', 1) = " << csv::is_null_date("0", 1) << std::endl;
+    std::cout << "  is_null_date('20240101', 8) = " << csv::is_null_date("20240101", 8) << std::endl;
 
     std::cout << "\nAll tests passed." << std::endl;
     return 0;
