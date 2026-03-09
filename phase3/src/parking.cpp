@@ -10,6 +10,15 @@ size_t ParkingAPI::load(const std::string& filepath) {
     return reader.read(filepath, store_);
 }
 
+// SIMD-friendly queries
+CountResult ParkingAPI::count_in_date_range(uint32_t start_date, uint32_t end_date) {
+    return parking::count_in_date_range(store_, start_date, end_date);
+}
+
+DateRangeResult ParkingAPI::find_date_extremes() {
+    return parking::find_date_extremes(store_);
+}
+
 SearchResult ParkingAPI::find_by_date_range(uint32_t start_date, uint32_t end_date) {
     return search_by_date_range(store_, start_date, end_date);
 }

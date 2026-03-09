@@ -1,30 +1,24 @@
 cmake_minimum_required(VERSION 3.16)
-project(parking_violations CXX)
 
-# Apple Clang needs hints to find Homebrew's libomp
-if(APPLE)
-    execute_process(
-        COMMAND brew --prefix libomp
-        OUTPUT_VARIABLE LIBOMP_PREFIX
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET
-    )
-    if(LIBOMP_PREFIX)
-        set(OpenMP_C_FLAGS "-Xpreprocessor -fopenmp -I${LIBOMP_PREFIX}/include")
-        set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp -I${LIBOMP_PREFIX}/include")
-        set(OpenMP_C_LIB_NAMES "omp")
-        set(OpenMP_CXX_LIB_NAMES "omp")
-        set(OpenMP_omp_LIBRARY "${LIBOMP_PREFIX}/lib/libomp.dylib")
-    endif()
-endif()
-find_package(OpenMP REQUIRED)
+# Use LLVM clang from Homebrew (must be before project())
+set(CMAKE_C_COMPILER "/opt/homebrew/opt/llvm/bin/clang")
+set(CMAKE_CXX_COMPILER "/opt/homebrew/opt/llvm/bin/clang++")
+
+project(parking_violations CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Compiler flags
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+# LLVM clang OpenMP setup
+set(OpenMP_ROOT "/opt/homebrew/opt/libomp")
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -I${OpenMP_ROOT}/include")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -L/opt/homebrew/opt/llvm/lib/c++ -Wl,-rpath,/opt/homebrew/opt/llvm/lib/c++")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${OpenMP_ROOT}/lib -lomp")
+
+# Compiler flags with vectorization reports
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Rpass=loop-vectorize -Rpass-missed=loop-vectorize")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DDEBUG")
 
 # Default to Release build

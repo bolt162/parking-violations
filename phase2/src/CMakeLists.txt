@@ -8,7 +8,7 @@ set(LIB_SOURCES
 
 # Build the parking library
 add_library(parking_lib ${LIB_SOURCES})
-target_link_libraries(parking_lib PUBLIC OpenMP::OpenMP_CXX)
+# OpenMP linked via CMAKE_EXE_LINKER_FLAGS in root CMakeLists.txt
 
 # Dependency variable for linking
 set(BUILD_LIBRARIES parking_lib PARENT_SCOPE)
