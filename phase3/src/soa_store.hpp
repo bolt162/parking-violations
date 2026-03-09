@@ -34,6 +34,14 @@ public:
         return pool_.size() / (1024.0 * 1024.0 * 1024.0);
     }
 
+    // Raw pointer to underlying data (for bulk merging)
+    const char* data_ptr() const { return pool_.data(); }
+
+    // Append bulk data (for merging thread-local pools)
+    void append_bulk(const char* data, size_t length) {
+        pool_.append(data, length);
+    }
+
 private:
     std::string pool_;
 };
