@@ -3,7 +3,6 @@
 namespace parking {
 
 void SoADataStore::reserve(size_t n) {
-    // HOT columns
     issue_dates.reserve(n);
     violation_codes.reserve(n);
     violation_precincts.reserve(n);
@@ -11,11 +10,9 @@ void SoADataStore::reserve(size_t n) {
     registration_states.reserve(n);
     violation_counties.reserve(n);
 
-    // WARM columns
     plate_offsets.reserve(n);
     plate_lengths.reserve(n);
 
-    // COLD numeric columns
     summons_numbers.reserve(n);
     street_code1.reserve(n);
     street_code2.reserve(n);
@@ -28,7 +25,6 @@ void SoADataStore::reserve(size_t n) {
     vehicle_years.reserve(n);
     feet_from_curb.reserve(n);
 
-    // COLD enum columns
     plate_types.reserve(n);
     issuing_agencies.reserve(n);
     issuer_squads.reserve(n);
@@ -36,18 +32,15 @@ void SoADataStore::reserve(size_t n) {
     violation_legal_codes.reserve(n);
     unregistered_vehicles.reserve(n);
 
-    // String field references
     for (int i = 0; i < NUM_STR_FIELDS; ++i) {
         str_offsets[i].reserve(n);
         str_lengths[i].reserve(n);
     }
 
-    // Text pool: estimate 70 bytes per record
     text_pool.reserve(n * 70);
 }
 
 void SoADataStore::resize(size_t n) {
-    // HOT columns
     issue_dates.resize(n);
     violation_codes.resize(n);
     violation_precincts.resize(n);
@@ -55,11 +48,9 @@ void SoADataStore::resize(size_t n) {
     registration_states.resize(n);
     violation_counties.resize(n);
 
-    // WARM columns
     plate_offsets.resize(n);
     plate_lengths.resize(n);
 
-    // COLD numeric columns
     summons_numbers.resize(n);
     street_code1.resize(n);
     street_code2.resize(n);
@@ -72,7 +63,6 @@ void SoADataStore::resize(size_t n) {
     vehicle_years.resize(n);
     feet_from_curb.resize(n);
 
-    // COLD enum columns
     plate_types.resize(n);
     issuing_agencies.resize(n);
     issuer_squads.resize(n);
@@ -80,7 +70,6 @@ void SoADataStore::resize(size_t n) {
     violation_legal_codes.resize(n);
     unregistered_vehicles.resize(n);
 
-    // String field references
     for (int i = 0; i < NUM_STR_FIELDS; ++i) {
         str_offsets[i].resize(n);
         str_lengths[i].resize(n);

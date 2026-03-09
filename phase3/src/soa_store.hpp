@@ -9,7 +9,6 @@
 namespace parking {
 
 // Contiguous pool for all text field data.
-// Same design as Phase 2.
 class TextPool {
 public:
     void reserve(size_t bytes) {
@@ -29,14 +28,6 @@ public:
     }
 
     size_t size() const { return pool_.size(); }
-    const char* data_ptr() const { return pool_.data(); }
-
-    uint32_t append_bulk(const char* data, size_t length) {
-        uint32_t offset = static_cast<uint32_t>(pool_.size());
-        pool_.append(data, length);
-        return offset;
-    }
-
     void clear() { pool_.clear(); }
 
     double size_gb() const {
@@ -48,11 +39,11 @@ private:
 };
 
 // Structure-of-Arrays data store.
-// Each field is a separate contiguous array.
-// This improves cache efficiency: searching by issue_date only loads issue_dates array.
+// Each field is a separate contiguous array for cache efficiency.
 struct SoADataStore {
+    static constexpr int NUM_STR_FIELDS = 20;
 
-    // HOT: fields used by search queries
+    // Queried columns
     std::vector<uint32_t> issue_dates;
     std::vector<uint16_t> violation_codes;
     std::vector<uint16_t> violation_precincts;
@@ -60,11 +51,11 @@ struct SoADataStore {
     std::vector<uint8_t>  registration_states;
     std::vector<uint8_t>  violation_counties;
 
-    // WARM: plate lookup needs these
+    // Plate lookup
     std::vector<uint32_t> plate_offsets;
     std::vector<uint8_t>  plate_lengths;
 
-    // COLD: numeric fields not used in queries
+    // Other numeric columns
     std::vector<uint64_t> summons_numbers;
     std::vector<uint32_t> street_code1;
     std::vector<uint32_t> street_code2;
@@ -77,7 +68,7 @@ struct SoADataStore {
     std::vector<uint16_t> vehicle_years;
     std::vector<uint16_t> feet_from_curb;
 
-    // COLD: enum fields not used in queries
+    // Other enum columns
     std::vector<uint8_t> plate_types;
     std::vector<uint8_t> issuing_agencies;
     std::vector<uint8_t> issuer_squads;
@@ -85,9 +76,7 @@ struct SoADataStore {
     std::vector<uint8_t> violation_legal_codes;
     std::vector<uint8_t> unregistered_vehicles;
 
-    // String field references (20 fields, indices 1-20 from StringField enum)
-    // Index 0 (plate_id) is stored separately above as plate_offsets/plate_lengths
-    static constexpr int NUM_STR_FIELDS = 20;
+    // String field references
     std::vector<uint32_t> str_offsets[NUM_STR_FIELDS];
     std::vector<uint8_t>  str_lengths[NUM_STR_FIELDS];
 
