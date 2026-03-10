@@ -1,5 +1,4 @@
 // Basic usage example for the Parking Violations Library
-//
 // Build: Link against parking_soa_lib
 // Run:   ./basic_usage <csv_file>
 
