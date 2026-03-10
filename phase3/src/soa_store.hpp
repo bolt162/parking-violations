@@ -19,15 +19,16 @@ public:
         uint32_t offset = static_cast<uint32_t>(pool_.size());
         if (length > 0 && data != nullptr) {
             pool_.append(data, length);
-        }
+        } 
         return offset;
-    }
+        }
 
     const char* get(uint32_t offset) const {
         return pool_.data() + offset;
     }
 
-    size_t size() const { return pool_.size(); }
+    size_t size() const { 
+        return pool_.size(); }
     void clear() { pool_.clear(); }
 
     double size_gb() const {
@@ -46,6 +47,7 @@ private:
     std::string pool_;
 };
 
+
 // Structure-of-Arrays data store.
 // Each field is a separate contiguous array for cache efficiency.
 struct SoADataStore {
@@ -63,6 +65,7 @@ struct SoADataStore {
     std::vector<uint32_t> plate_offsets;
     std::vector<uint8_t>  plate_lengths;
 
+
     // Other numeric columns
     std::vector<uint64_t> summons_numbers;
     std::vector<uint32_t> street_code1;
@@ -75,7 +78,6 @@ struct SoADataStore {
     std::vector<uint16_t> law_sections;
     std::vector<uint16_t> vehicle_years;
     std::vector<uint16_t> feet_from_curb;
-
     // Other enum columns
     std::vector<uint8_t> plate_types;
     std::vector<uint8_t> issuing_agencies;
@@ -98,6 +100,6 @@ struct SoADataStore {
     size_t size() const { return record_count; }
 };
 
-} // namespace parking
+}
 
 #endif

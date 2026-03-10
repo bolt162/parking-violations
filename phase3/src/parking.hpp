@@ -48,7 +48,7 @@ public:
     // Load CSV file
     size_t load(const std::string& filepath);
 
-    // SIMD-friendly queries (pure reductions, can be auto-vectorized)
+    // SIMD-friendly query (pure reductions, can be auto-vectorized)
     CountResult count_in_date_range(uint32_t start_date, uint32_t end_date);
     DateRangeResult find_date_extremes();
 
@@ -72,6 +72,6 @@ private:
     SoADataStore store_;
 };
 
-} // namespace parking
+}
 
 #endif

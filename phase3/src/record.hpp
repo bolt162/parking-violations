@@ -8,7 +8,7 @@
 
 namespace parking {
 
-// Column indices (0-based) in the canonical merged CSV
+// Column indices
 enum class Column : int {
     SUMMONS_NUMBER = 0,
     PLATE_ID = 1,
@@ -58,16 +58,13 @@ enum class Column : int {
 
 constexpr int COLUMN_COUNT = 44;
 
-// Null sentinel values
 constexpr uint32_t NULL_DATE = 0;
 constexpr uint64_t NULL_UINT64 = 0;
 constexpr uint32_t NULL_UINT32 = 0;
 constexpr uint16_t NULL_UINT16 = 0;
 constexpr uint8_t  NULL_ENUM = 0;
 
-// --- Enum IDs for low-cardinality fields ---
-// Each enum uses 0 = unknown/empty, 1+ for known codes.
-
+// Enum IDs
 namespace county {
     constexpr uint8_t UNKNOWN  = 0;
     constexpr uint8_t MN       = 1;  // Manhattan
@@ -268,11 +265,9 @@ inline uint8_t squad_to_enum(const char* s, int len) {
     return (it != table.end()) ? it->second : 0;
 }
 
-// --- Text field references ---
-
+// Text field references
 constexpr int NUM_TEXT_FIELDS = 21;
 
-// Indexes into ViolationRecord::str_offsets[] and str_lengths[]
 enum StringField : int {
     SF_PLATE_ID                = 0,
     SF_VEHICLE_BODY_TYPE       = 1,
@@ -297,7 +292,6 @@ enum StringField : int {
     SF_DOUBLE_PARKING          = 20,
 };
 
-// Human-readable name for a StringField index (for debug output).
 inline const char* text_field_name(int idx) {
     static const char* names[NUM_TEXT_FIELDS] = {
         "Plate ID",
@@ -326,13 +320,8 @@ inline const char* text_field_name(int idx) {
     return "Unknown";
 }
 
-// --- Violation record struct ---
-
-// A single parking violation record using primitive types only.
-// Low-cardinality text fields are encoded as uint8_t enum IDs.
-// High-cardinality string fields are stored in an external TextPool
-// as (offset, length) pairs -- use StringField enum to index.
-// Layout: Array-of-Structs (AoS), one struct per CSV row.
+// Violation record struct
+// Array-of-Structs (AoS), one struct per CSV row.
 struct ViolationRecord {
     // Numeric fields
     uint64_t summons_number;            // 10-digit ID

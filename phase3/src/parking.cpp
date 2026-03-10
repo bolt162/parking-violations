@@ -10,7 +10,7 @@ size_t ParkingAPI::load(const std::string& filepath) {
     return reader.read(filepath, store_);
 }
 
-// SIMD-friendly queries
+// SIMD-friendly query
 CountResult ParkingAPI::count_in_date_range(uint32_t start_date, uint32_t end_date) {
     return parking::count_in_date_range(store_, start_date, end_date);
 }
@@ -47,4 +47,4 @@ AggregateResult ParkingAPI::count_by_fiscal_year() {
     return parking::count_by_fiscal_year(store_);
 }
 
-} // namespace parking
+}

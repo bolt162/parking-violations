@@ -90,12 +90,12 @@ static bool store_record(const FieldView* f, int n, size_t i, SoADataStore& s, T
     s.unregistered_vehicles[i] = unreg_vehicle_to_enum(f[static_cast<int>(Column::UNREGISTERED_VEHICLE)].data,
                                                         f[static_cast<int>(Column::UNREGISTERED_VEHICLE)].length);
 
-    // Plate string - store local offset (will be adjusted later)
+    // Plate string
     const FieldView& plate = f[static_cast<int>(Column::PLATE_ID)];
     s.plate_offsets[i] = local_pool.append(plate.data, plate.length);
     s.plate_lengths[i] = plate.length;
 
-    // Other 20 string fields - store local offsets
+    // Other 20 string fields
     for (int j = 0; j < 20; j++) {
         const FieldView& sf = f[static_cast<int>(STR_COLS[j])];
         s.str_offsets[j][i] = local_pool.append(sf.data, sf.length);
@@ -109,7 +109,7 @@ size_t SoACsvReader::read(const std::string& filepath, SoADataStore& store) {
     std::cout << "Loading: " << filepath << std::endl;
     auto t_start = std::chrono::high_resolution_clock::now();
 
-    // Step 1: Open and mmap file
+    // Open and mmap file
     int fd = open(filepath.c_str(), O_RDONLY);
     if (fd < 0) {
         std::cerr << "Cannot open file" << std::endl;
@@ -131,7 +131,7 @@ size_t SoACsvReader::read(const std::string& filepath, SoADataStore& store) {
 
     auto t_mmap = std::chrono::high_resolution_clock::now();
 
-    // Step 2: Skip header and find line boundaries
+    // Skip header and find line boundaries
     size_t header_end = 0;
     while (header_end < file_size && data[header_end] != '\n') header_end++;
     header_end++;
@@ -154,22 +154,19 @@ size_t SoACsvReader::read(const std::string& filepath, SoADataStore& store) {
     std::cout << "Found " << total_lines << " lines" << std::endl;
 
     auto t_scan = std::chrono::high_resolution_clock::now();
-
-    // Step 3: Allocate all arrays
     store.resize(total_lines);
 
-    // Step 4: Parallel parsing with thread-local TextPools
+    // Parallel parsing with thread-local TextPools
     int num_threads = omp_get_max_threads();
     std::vector<TextPool> thread_pools(num_threads);
     std::vector<size_t> thread_start_idx(num_threads);
     std::vector<size_t> thread_end_idx(num_threads);
 
-    // Pre-compute chunk boundaries
+    // Pre-computing chunk boundaries
     size_t chunk_size = total_lines / num_threads;
     for (int t = 0; t < num_threads; t++) {
         thread_start_idx[t] = t * chunk_size;
         thread_end_idx[t] = (t == num_threads - 1) ? total_lines : (t + 1) * chunk_size;
-        // Estimate ~80 bytes text per record for reservation
         thread_pools[t].reserve((thread_end_idx[t] - thread_start_idx[t]) * 80);
     }
 
@@ -204,7 +201,7 @@ size_t SoACsvReader::read(const std::string& filepath, SoADataStore& store) {
 
     auto t_parse = std::chrono::high_resolution_clock::now();
 
-    // Step 5: Merge thread-local TextPools and adjust offsets
+    // Merge thread-local TextPools and adjust offsets
     std::vector<uint32_t> pool_base_offsets(num_threads);
 
     // Calculate total text size and base offsets

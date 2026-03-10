@@ -7,11 +7,6 @@
 
 namespace parking {
 
-// ============================================================
-// SIMD-FRIENDLY QUERIES (no conditional collection, pure reduction)
-// These can be auto-vectorized by the compiler
-// ============================================================
-
 CountResult count_in_date_range(const SoADataStore& store, uint32_t start, uint32_t end) {
     CountResult result;
     auto t0 = std::chrono::high_resolution_clock::now();
@@ -40,8 +35,6 @@ DateRangeResult find_date_extremes(const SoADataStore& store) {
     size_t n = store.size();
     result.total_scanned = n;
     const uint32_t* dates = store.issue_dates.data();
-
-    // Min/max reduction - compiler can auto-vectorize this
     uint32_t min_date = std::numeric_limits<uint32_t>::max();
     uint32_t max_date = 0;
 
@@ -58,10 +51,7 @@ DateRangeResult find_date_extremes(const SoADataStore& store) {
     return result;
 }
 
-// ============================================================
-// FILTER QUERIES (conditional collection, cannot be vectorized)
-// ============================================================
-
+// filter queries
 SearchResult search_by_date_range(const SoADataStore& store, uint32_t start, uint32_t end) {
     SearchResult result;
     auto t0 = std::chrono::high_resolution_clock::now();
@@ -321,4 +311,4 @@ AggregateResult count_by_fiscal_year(const SoADataStore& store) {
     return result;
 }
 
-} // namespace parking
+}

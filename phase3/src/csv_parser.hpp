@@ -13,7 +13,6 @@ struct FieldView {
     int length;
 };
 
-// CSV parsing utilities - same as Phase 2
 namespace csv {
 
 inline int parse_line(const char* line, int len, FieldView* fields) {
@@ -71,7 +70,7 @@ inline bool is_null_date(const char* s, int len) {
     return false;
 }
 
-} // namespace csv
-} // namespace parking
+}
+}
 
 #endif

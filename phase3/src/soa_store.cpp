@@ -78,4 +78,4 @@ void SoADataStore::resize(size_t n) {
     record_count = n;
 }
 
-} // namespace parking
+}

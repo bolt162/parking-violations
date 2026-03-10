@@ -13,6 +13,6 @@ public:
     size_t read(const std::string& filepath, SoADataStore& store);
 };
 
-} // namespace parking
+}
 
 #endif
