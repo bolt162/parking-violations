@@ -8,7 +8,7 @@
 
 namespace parking {
 
-// Column indices (0-based) in the canonical merged CSV
+// Column indices (0-based)
 enum class Column : int {
     SUMMONS_NUMBER = 0,
     PLATE_ID = 1,
@@ -64,9 +64,6 @@ constexpr uint64_t NULL_UINT64 = 0;
 constexpr uint32_t NULL_UINT32 = 0;
 constexpr uint16_t NULL_UINT16 = 0;
 constexpr uint8_t  NULL_ENUM = 0;
-
-// --- Enum IDs for low-cardinality fields ---
-// Each enum uses 0 = unknown/empty, 1+ for known codes.
 
 namespace county {
     constexpr uint8_t UNKNOWN  = 0;
@@ -326,13 +323,9 @@ inline const char* text_field_name(int idx) {
     return "Unknown";
 }
 
-// --- Violation record struct ---
+// Violation record struct
 
 // A single parking violation record using primitive types only.
-// Low-cardinality text fields are encoded as uint8_t enum IDs.
-// High-cardinality string fields are stored in an external TextPool
-// as (offset, length) pairs -- use StringField enum to index.
-// Layout: Array-of-Structs (AoS), one struct per CSV row.
 struct ViolationRecord {
     // Numeric fields
     uint64_t summons_number;            // 10-digit ID
@@ -370,6 +363,6 @@ struct ViolationRecord {
     static constexpr int FIELD_COUNT = 44;
 };
 
-} // namespace parking
+}
 
-#endif // PARKING_RECORD_HPP
+#endif

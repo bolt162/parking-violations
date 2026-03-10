@@ -7,11 +7,8 @@
 
 namespace parking {
 
-// --- DataStore ---
-
 void DataStore::reserve(size_t count) {
     records_.reserve(count);
-    // Estimate ~70 bytes of text content per record
     text_pool_.reserve(count * 70);
 }
 
@@ -57,8 +54,6 @@ TextPool& DataStore::text_pool() {
     return text_pool_;
 }
 
-// --- ParkingAPI ---
-
 ParkingAPI::ParkingAPI(bool use_indexed)
     : use_indexed_(use_indexed)
 {
@@ -69,7 +64,6 @@ ParkingAPI::ParkingAPI(bool use_indexed)
     }
 }
 
-// Out-of-line destructor so unique_ptr<SearchEngine> works with forward decl
 ParkingAPI::~ParkingAPI() = default;
 
 size_t ParkingAPI::load(const std::string& filepath) {
@@ -89,7 +83,7 @@ size_t ParkingAPI::load(const std::string& filepath) {
     return count;
 }
 
-// Filter queries
+// filter queries
 
 SearchResult ParkingAPI::find_by_date_range(uint32_t start_date,
                                              uint32_t end_date) {
@@ -115,7 +109,7 @@ SearchResult ParkingAPI::find_by_county(uint8_t county_enum) {
     return search_engine_->search_by_county(store_, county_enum);
 }
 
-// Aggregation queries
+// aggregation queries
 
 AggregateResult ParkingAPI::count_by_precinct() {
     return search_engine_->count_by_precinct(store_);
@@ -126,7 +120,6 @@ AggregateResult ParkingAPI::count_by_fiscal_year() {
 }
 
 // Accessors
-
 size_t ParkingAPI::record_count() const {
     return store_.size();
 }
@@ -143,8 +136,9 @@ const TextPool& ParkingAPI::text_pool() const {
     return store_.text_pool();
 }
 
+
 const char* ParkingAPI::search_engine_name() const {
     return search_engine_->name();
 }
 
-} // namespace parking
+}

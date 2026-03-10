@@ -10,8 +10,6 @@
 
 namespace parking {
 
-// --- Timing helpers ---
-
 using Clock = std::chrono::high_resolution_clock;
 
 static inline auto now() { return Clock::now(); }
@@ -19,8 +17,6 @@ static inline auto now() { return Clock::now(); }
 static inline double elapsed_ms(Clock::time_point start, Clock::time_point end) {
     return std::chrono::duration<double, std::milli>(end - start).count();
 }
-
-// --- merge_thread_results: combine thread-local vectors into result ---
 
 static void merge_thread_results(
     std::vector<std::vector<size_t>>& local_results,
@@ -36,10 +32,6 @@ static void merge_thread_results(
         result.indices.insert(result.indices.end(), v.begin(), v.end());
     }
 }
-
-// --- parallel_scan_filter: eliminates boilerplate in parallel filter queries ---
-// Pred takes (const ViolationRecord&) and returns bool.
-// Uses thread-local vector accumulation with static scheduling.
 
 template <typename Pred>
 static SearchResult parallel_scan_filter(const DataStore& store, Pred pred) {
@@ -70,8 +62,6 @@ static SearchResult parallel_scan_filter(const DataStore& store, Pred pred) {
     result.elapsed_ms = elapsed_ms(t0, now());
     return result;
 }
-
-// --- ParallelSearch ---
 
 SearchResult ParallelSearch::search_by_date_range(
     const DataStore& store, uint32_t start_date, uint32_t end_date)
@@ -141,8 +131,7 @@ SearchResult ParallelSearch::search_by_county(
     });
 }
 
-// Aggregation queries (Pattern B: thread-local array reduction)
-
+// Aggregation queries
 AggregateResult ParallelSearch::count_by_precinct(const DataStore& store) {
     AggregateResult result;
     auto t0 = now();
@@ -171,7 +160,6 @@ AggregateResult ParallelSearch::count_by_precinct(const DataStore& store) {
         }
     }
 
-    // Reduce: sum all thread arrays element-wise
     std::array<size_t, MAX_PRECINCT> final_counts{};
     for (const auto& tc : thread_counts) {
         for (size_t p = 0; p < MAX_PRECINCT; ++p) {
@@ -197,7 +185,6 @@ AggregateResult ParallelSearch::count_by_fiscal_year(const DataStore& store) {
     const size_t n = recs.size();
     result.total_scanned = n;
 
-    // Fiscal years range ~2015-2030, use a small fixed array
     static constexpr int FY_BASE = 2000;
     static constexpr size_t FY_SLOTS = 50;
     int max_threads = omp_get_max_threads();
@@ -253,7 +240,6 @@ void IndexedSearch::build_indices(const DataStore& store) {
         return idx;
     };
 
-    // Pre-allocate all 4 index vectors
     date_index_   = make_index();
     code_index_   = make_index();
     state_index_  = make_index();
@@ -465,8 +451,7 @@ SearchResult IndexedSearch::search_by_county(
     return result;
 }
 
-// Aggregation queries (still full-scan even with indices)
-
+// aggregation queries
 AggregateResult IndexedSearch::count_by_precinct(const DataStore& store) {
     AggregateResult result;
     auto t0 = now();
@@ -508,5 +493,4 @@ AggregateResult IndexedSearch::count_by_fiscal_year(const DataStore& store) {
     result.elapsed_ms = elapsed_ms(t0, now());
     return result;
 }
-
-} // namespace parking
+}

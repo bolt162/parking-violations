@@ -7,8 +7,6 @@
 
 namespace parking {
 
-// Abstract search interface for polymorphic swapping between
-// LinearSearch (serial brute-force) and IndexedSearch (sorted + binary search).
 class SearchEngine {
 public:
     SearchEngine() = default;
@@ -16,7 +14,6 @@ public:
 
     virtual const char* name() const = 0;
 
-    // Filter queries -- return matching record indices
     virtual SearchResult search_by_date_range(
         const DataStore& store, uint32_t start_date, uint32_t end_date) = 0;
 
@@ -32,13 +29,10 @@ public:
 
     virtual SearchResult search_by_county(
         const DataStore& store, uint8_t county_enum) = 0;
-
-    // Aggregation queries -- return category counts
     virtual AggregateResult count_by_precinct(const DataStore& store) = 0;
     virtual AggregateResult count_by_fiscal_year(const DataStore& store) = 0;
 };
 
-// Serial linear scan over all records.
 class LinearSearch : public SearchEngine {
 public:
     const char* name() const override { return "LinearSearch"; }
@@ -59,13 +53,11 @@ public:
     AggregateResult count_by_fiscal_year(const DataStore& store) override;
 };
 
-// Pre-built sorted indices with O(log n) binary search lookups.
-// Memory overhead: one uint32_t per record per indexed field.
+
 class IndexedSearch : public SearchEngine {
 public:
     const char* name() const override { return "IndexedSearch"; }
 
-    // Build sorted indices from loaded data. Must be called once before queries.
     void build_indices(const DataStore& store);
 
     SearchResult search_by_date_range(
@@ -95,6 +87,6 @@ private:
     bool indices_built_ = false;
 };
 
-} // namespace parking
+}
 
-#endif // PARKING_SEARCH_HPP
+#endif

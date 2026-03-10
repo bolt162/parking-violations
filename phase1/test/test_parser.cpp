@@ -41,7 +41,7 @@ static int tests_failed = 0;
         tests_failed++; tests_passed--; \
     } else { PASS(); }
 
-// --- Test ViolationRecord ---
+//Test ViolationRecord
 
 void test_record_size() {
     std::cout << "\n=== ViolationRecord ===" << std::endl;
@@ -78,7 +78,7 @@ void test_record_zero_init() {
     ASSERT_EQ(rec.violation_county, 0)
 }
 
-// --- Test CsvParser::parse_line ---
+// Test CsvParser::parse_line
 
 void test_parse_simple_quoted() {
     std::cout << "\n=== CsvParser::parse_line ===" << std::endl;
@@ -261,7 +261,7 @@ void test_type_conversions() {
     ASSERT_STREQ(empty, "")
 }
 
-// --- Test null detection ---
+// Test null detection
 
 void test_null_detection() {
     std::cout << "\n=== Null Detection ===" << std::endl;
@@ -285,7 +285,7 @@ void test_null_detection() {
     ASSERT_FALSE(CsvParser::is_null_date("123", 3))
 }
 
-// --- Test enum lookups ---
+//Test enum lookups
 
 void test_enum_lookups() {
     std::cout << "\n=== Enum Lookups ===" << std::endl;
@@ -361,10 +361,7 @@ void test_enum_lookups() {
 }
 
 int main() {
-    std::cout << "======================================" << std::endl;
     std::cout << "  Parking Violations Parser Tests" << std::endl;
-    std::cout << "======================================" << std::endl;
-
     test_record_size();
     test_record_zero_init();
     test_parse_simple_quoted();
@@ -375,10 +372,8 @@ int main() {
     test_null_detection();
     test_enum_lookups();
 
-    std::cout << "\n======================================" << std::endl;
     std::cout << "  Results: " << tests_passed << " passed, "
               << tests_failed << " failed" << std::endl;
-    std::cout << "======================================" << std::endl;
 
     return tests_failed > 0 ? 1 : 0;
 }

@@ -11,20 +11,14 @@
 
 namespace parking {
 
-// Contiguous pool for all text (string) field data.
-// Variable-length string values are appended here instead of stored
-// as fixed-size char arrays. Each record stores (offset, length) pairs
-// that point into this pool.
 class TextPool {
 public:
     TextPool() = default;
 
-    // Pre-allocate capacity for estimated total text bytes.
     void reserve(size_t bytes) {
         pool_.reserve(bytes);
     }
 
-    // Append a string value. Returns the byte offset where it was stored.
     uint32_t append(const char* data, int length) {
         uint32_t offset = static_cast<uint32_t>(pool_.size());
         if (length > 0 && data != nullptr) {
@@ -33,7 +27,6 @@ public:
         return offset;
     }
 
-    // Retrieve pointer to text at given offset (NOT null-terminated).
     const char* get(uint32_t offset) const {
         return pool_.data() + offset;
     }
@@ -49,14 +42,10 @@ public:
         return pool_.size() / (1024.0 * 1024.0 * 1024.0);
     }
 
-    // Clear all data (for reuse in chunked parallel parsing).
     void clear() { pool_.clear(); }
 
-    // Raw pointer to underlying data (for bulk merging of thread-local pools).
     const char* data_ptr() const { return pool_.data(); }
 
-    // Append a bulk chunk of data (for merging thread-local pools).
-    // Returns the byte offset where the bulk data starts in this pool.
     uint32_t append_bulk(const char* data, size_t length) {
         uint32_t offset = static_cast<uint32_t>(pool_.size());
         pool_.append(data, length);
@@ -67,8 +56,6 @@ private:
     std::string pool_;
 };
 
-// Central data container owning all loaded ViolationRecords
-// and the shared TextPool for string field data.
 class DataStore {
 public:
     DataStore() = default;
@@ -95,10 +82,6 @@ private:
     TextPool text_pool_;
 };
 
-// --- Search result types ---
-
-// Lightweight result from a filter query.
-// Stores indices into the DataStore rather than copies of records.
 struct SearchResult {
     std::vector<size_t> indices;
     size_t total_scanned = 0;
@@ -106,21 +89,18 @@ struct SearchResult {
     size_t count() const { return indices.size(); }
 };
 
-// Result from an aggregation query (count by category).
 struct AggregateResult {
     std::vector<std::pair<uint16_t, size_t>> counts;
     size_t total_scanned = 0;
     double elapsed_ms = 0.0;
 };
 
-// Count-only result (SIMD-friendly query)
 struct CountResult {
     size_t count = 0;
     size_t total_scanned = 0;
     double elapsed_ms = 0.0;
 };
 
-// Date range result (SIMD-friendly query)
 struct DateRangeResult {
     uint32_t min_date = 0;
     uint32_t max_date = 0;
@@ -128,53 +108,33 @@ struct DateRangeResult {
     double elapsed_ms = 0.0;
 };
 
-// Forward declaration -- defined in search.hpp
 class SearchEngine;
 
-// Top-level facade for the parking violations engine.
-// Hides DataStore, CSV loading, and SearchEngine behind a simple API.
-//
-// Usage:
-//   ParkingAPI api;
-//   api.load("parking_violations_merged.csv");
-//   auto results = api.find_by_violation_code(46);
-//   std::cout << results.count() << " matches\n";
 class ParkingAPI {
 public:
-    /// If use_indexed is true, builds sorted indices for O(log n) queries.
-    /// Otherwise uses ParallelSearch (OpenMP parallelized linear scan).
     explicit ParkingAPI(bool use_indexed = false);
     ~ParkingAPI();
 
-    // --- Data loading ---
-
-    /// Load a CSV file into the engine.
+    /// Load a CSV file
     size_t load(const std::string& filepath);
-
-    // --- SIMD-friendly queries (pure reductions) ---
 
     CountResult count_in_date_range(uint32_t start_date, uint32_t end_date);
     DateRangeResult find_date_extremes();
-
-    // --- Filter queries ---
-
     SearchResult find_by_date_range(uint32_t start_date, uint32_t end_date);
     SearchResult find_by_violation_code(uint16_t code);
     SearchResult find_by_plate(const char* plate_id);
     SearchResult find_by_state(uint8_t state_enum);
     SearchResult find_by_county(uint8_t county_enum);
 
-    // --- Aggregation queries ---
-
     AggregateResult count_by_precinct();
     AggregateResult count_by_fiscal_year();
 
-    // --- Accessors ---
 
     size_t record_count() const;
     const DataStore& store() const;
     const ViolationRecord& record(size_t index) const;
     const TextPool& text_pool() const;
+
     const char* search_engine_name() const;
 
 private:
@@ -183,6 +143,6 @@ private:
     bool use_indexed_;
 };
 
-} // namespace parking
+}
 
-#endif // PARKING_HPP
+#endif

@@ -9,10 +9,6 @@
 
 namespace parking {
 
-// --- CsvParser ---
-
-// State machine: UNQUOTED (comma ends field) and QUOTED (close-quote ends field).
-// Fields are returned as (pointer, length) into the original buffer.
 int CsvParser::parse_line(const char* line, int len, FieldView* fields) {
     int field_count = 0;
     int pos = 0;
@@ -22,7 +18,7 @@ int CsvParser::parse_line(const char* line, int len, FieldView* fields) {
         consumed_comma = false;
 
         if (line[pos] == '"') {
-            pos++;  // skip opening quote
+            pos++; 
             int start = pos;
 
             while (pos < len) {
@@ -31,7 +27,7 @@ int CsvParser::parse_line(const char* line, int len, FieldView* fields) {
                         pos += 2;  // escaped quote ""
                         continue;
                     }
-                    break;  // closing quote
+                    break;
                 }
                 pos++;
             }
@@ -40,7 +36,7 @@ int CsvParser::parse_line(const char* line, int len, FieldView* fields) {
             fields[field_count].length = pos - start;
             field_count++;
 
-            if (pos < len) pos++;  // skip closing "
+            if (pos < len) pos++;
             if (pos < len && line[pos] == ',') {
                 pos++;
                 consumed_comma = true;
@@ -63,7 +59,6 @@ int CsvParser::parse_line(const char* line, int len, FieldView* fields) {
         }
     }
 
-    // Trailing empty field after final comma
     if (consumed_comma && pos == len && field_count < MAX_FIELDS) {
         fields[field_count].data = line + pos;
         fields[field_count].length = 0;
@@ -129,9 +124,6 @@ bool CsvParser::is_null_date(const char* str, int len) {
     return false;
 }
 
-// --- CsvReader ---
-
-// Helper to store a text field into the pool and record its offset/length.
 static void store_text(const FieldView& f, int field_idx,
                        ViolationRecord& rec, TextPool& pool) {
     rec.str_offsets[field_idx] = pool.append(f.data, f.length);
@@ -144,9 +136,8 @@ bool CsvReader::populate_record(const char* line, int line_len,
     FieldView fields[MAX_FIELDS];
     int n = CsvParser::parse_line(line, line_len, fields);
 
-    if (n < 43) return false;  // malformed line
+    if (n < 43) return false; 
 
-    // Numeric fields
     rec.summons_number = CsvParser::to_uint64(
         fields[static_cast<int>(Column::SUMMONS_NUMBER)].data,
         fields[static_cast<int>(Column::SUMMONS_NUMBER)].length);
@@ -281,7 +272,7 @@ size_t CsvReader::read(const std::string& filepath,
 
     auto t_start = std::chrono::high_resolution_clock::now();
 
-    // Pass 1: count lines for pre-allocation
+    // count lines for pre-allocation
     std::cout << "  Pass 1: Counting lines in " << filepath << "..."
               << std::flush;
 
@@ -308,7 +299,7 @@ size_t CsvReader::read(const std::string& filepath,
     records.reserve(records.size() + data_lines);
     pool.reserve(pool.size() + data_lines * 70);
 
-    // Pass 2: parse line by line
+    // parse line by line
     std::cout << "  Pass 2: Parsing " << data_lines << " records..."
               << std::flush;
 
@@ -318,7 +309,7 @@ size_t CsvReader::read(const std::string& filepath,
         return 0;
     }
 
-    std::getline(file, line);  // skip header
+    std::getline(file, line);// skip header
 
     size_t parsed = 0;
     size_t skipped = 0;
@@ -364,8 +355,6 @@ size_t CsvReader::read(const std::string& filepath,
     return parsed;
 }
 
-// --- load_csv (replaces FileLoader) ---
-
 size_t load_csv(const std::string& filepath, DataStore& store) {
     std::cout << "Loading: " << filepath << std::endl;
 
@@ -386,4 +375,4 @@ size_t load_csv(const std::string& filepath, DataStore& store) {
     return count;
 }
 
-} // namespace parking
+}

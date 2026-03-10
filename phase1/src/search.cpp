@@ -9,8 +9,6 @@
 
 namespace parking {
 
-// --- Timing helpers ---
-
 using Clock = std::chrono::high_resolution_clock;
 
 static inline auto now() { return Clock::now(); }
@@ -18,9 +16,6 @@ static inline auto now() { return Clock::now(); }
 static inline double elapsed_ms(Clock::time_point start, Clock::time_point end) {
     return std::chrono::duration<double, std::milli>(end - start).count();
 }
-
-// --- scan_filter: eliminates boilerplate in linear filter queries ---
-// Pred takes (const ViolationRecord&) and returns bool.
 
 template <typename Pred>
 static SearchResult scan_filter(const DataStore& store, Pred pred) {
@@ -39,8 +34,6 @@ static SearchResult scan_filter(const DataStore& store, Pred pred) {
     result.elapsed_ms = elapsed_ms(t0, now());
     return result;
 }
-
-// --- LinearSearch ---
 
 SearchResult LinearSearch::search_by_date_range(
     const DataStore& store, uint32_t start_date, uint32_t end_date)
@@ -139,8 +132,6 @@ AggregateResult LinearSearch::count_by_fiscal_year(const DataStore& store) {
     result.elapsed_ms = elapsed_ms(t0, now());
     return result;
 }
-
-// --- IndexedSearch ---
 
 void IndexedSearch::build_indices(const DataStore& store) {
     auto t0 = now();
@@ -267,7 +258,6 @@ SearchResult IndexedSearch::search_by_plate(
     const DataStore& store, const TextPool& pool,
     const char* plate_id, int plate_len)
 {
-    // Plate has too many unique values for a practical index, fall back to scan
     SearchResult result;
     auto t0 = now();
 
@@ -348,8 +338,6 @@ SearchResult IndexedSearch::search_by_county(
     return result;
 }
 
-// Aggregation queries (still full-scan even with indices)
-
 AggregateResult IndexedSearch::count_by_precinct(const DataStore& store) {
     AggregateResult result;
     auto t0 = now();
@@ -392,4 +380,4 @@ AggregateResult IndexedSearch::count_by_fiscal_year(const DataStore& store) {
     return result;
 }
 
-} // namespace parking
+}

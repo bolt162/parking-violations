@@ -7,8 +7,6 @@
 
 namespace parking {
 
-// Abstract search interface for polymorphic swapping between
-// ParallelSearch (OpenMP linear scan) and IndexedSearch (sorted + binary search).
 class SearchEngine {
 public:
     SearchEngine() = default;
@@ -16,7 +14,7 @@ public:
 
     virtual const char* name() const = 0;
 
-    // Filter queries -- return matching record indices
+    // filter queries
     virtual SearchResult search_by_date_range(
         const DataStore& store, uint32_t start_date, uint32_t end_date) = 0;
 
@@ -33,16 +31,12 @@ public:
     virtual SearchResult search_by_county(
         const DataStore& store, uint8_t county_enum) = 0;
 
-    // Aggregation queries -- return category counts
+    // aggregation queries
     virtual AggregateResult count_by_precinct(const DataStore& store) = 0;
     virtual AggregateResult count_by_fiscal_year(const DataStore& store) = 0;
 };
 
 // OpenMP-parallelized linear scan over all records.
-// Uses thread-local accumulation patterns to avoid synchronization:
-//   Filter queries:  thread-local vectors merged after parallel scan
-//   Aggregations:    thread-local arrays reduced element-wise
-// Thread count controlled via omp_set_num_threads() or OMP_NUM_THREADS env.
 class ParallelSearch : public SearchEngine {
 public:
     const char* name() const override { return "ParallelSearch"; }
@@ -63,9 +57,6 @@ public:
     AggregateResult count_by_fiscal_year(const DataStore& store) override;
 };
 
-// Pre-built sorted indices with O(log n) binary search lookups.
-// Memory overhead: one uint32_t per record per indexed field.
-// Index build uses OpenMP parallel sections for concurrent sorting.
 class IndexedSearch : public SearchEngine {
 public:
     const char* name() const override { return "IndexedSearch"; }
@@ -100,6 +91,6 @@ private:
     bool indices_built_ = false;
 };
 
-} // namespace parking
+}
 
-#endif // PARKING_SEARCH_HPP
+#endif

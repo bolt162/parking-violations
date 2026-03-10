@@ -2,10 +2,12 @@
 #include "soa_csv_reader.hpp"
 #include "soa_search.hpp"
 #include <cstring>
+#include <omp.h>
 
 namespace parking {
 
 size_t ParkingAPI::load(const std::string& filepath) {
+    omp_set_num_threads(6);
     SoACsvReader reader;
     return reader.read(filepath, store_);
 }

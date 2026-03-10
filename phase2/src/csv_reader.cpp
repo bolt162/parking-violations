@@ -16,10 +16,6 @@
 
 namespace parking {
 
-// --- CsvParser ---
-
-// State machine: UNQUOTED (comma ends field) and QUOTED (close-quote ends field).
-// Fields are returned as (pointer, length) into the original buffer.
 int CsvParser::parse_line(const char* line, int len, FieldView* fields) {
     int field_count = 0;
     int pos = 0;
@@ -29,16 +25,16 @@ int CsvParser::parse_line(const char* line, int len, FieldView* fields) {
         consumed_comma = false;
 
         if (line[pos] == '"') {
-            pos++;  // skip opening quote
+            pos++; 
             int start = pos;
 
             while (pos < len) {
                 if (line[pos] == '"') {
                     if (pos + 1 < len && line[pos + 1] == '"') {
-                        pos += 2;  // escaped quote ""
+                        pos += 2;
                         continue;
                     }
-                    break;  // closing quote
+                    break;
                 }
                 pos++;
             }
@@ -47,7 +43,7 @@ int CsvParser::parse_line(const char* line, int len, FieldView* fields) {
             fields[field_count].length = pos - start;
             field_count++;
 
-            if (pos < len) pos++;  // skip closing "
+            if (pos < len) pos++;
             if (pos < len && line[pos] == ',') {
                 pos++;
                 consumed_comma = true;
@@ -136,8 +132,6 @@ bool CsvParser::is_null_date(const char* str, int len) {
     return false;
 }
 
-// --- CsvReader ---
-
 // Helper to store a text field into the pool and record its offset/length.
 static void store_text(const FieldView& f, int field_idx,
                        ViolationRecord& rec, TextPool& pool) {
@@ -151,9 +145,8 @@ bool CsvReader::populate_record(const char* line, int line_len,
     FieldView fields[MAX_FIELDS];
     int n = CsvParser::parse_line(line, line_len, fields);
 
-    if (n < 43) return false;  // malformed line
+    if (n < 43) return false;
 
-    // Numeric fields
     rec.summons_number = CsvParser::to_uint64(
         fields[static_cast<int>(Column::SUMMONS_NUMBER)].data,
         fields[static_cast<int>(Column::SUMMONS_NUMBER)].length);
@@ -282,14 +275,6 @@ bool CsvReader::populate_record(const char* line, int line_len,
     return true;
 }
 
-// mmap + direct-write parallel parsing:
-//   1) mmap the file (zero-copy, OS manages page cache)
-//   2) Serial newline scan to find line boundaries (~336 MB offsets vs ~10 GB strings)
-//   3) Pre-allocate records[total_lines], each thread writes directly to records[i]
-//   4) Thread-local TextPools merged with offset adjustment (no record copying)
-//
-// Peak memory: ~13 GB (records + TextPool + thread-local pools)
-// vs previous: ~36 GB (lines + thread-local records + thread-local pools + global)
 size_t CsvReader::read(const std::string& filepath,
                        std::vector<ViolationRecord>& records,
                        TextPool& pool) {
@@ -323,7 +308,7 @@ size_t CsvReader::read(const std::string& filepath,
         close(fd);
         return 0;
     }
-    close(fd);  // fd no longer needed after mmap
+    close(fd);
 
     madvise(const_cast<void*>(static_cast<const void*>(file_data)),
             file_size, MADV_SEQUENTIAL);
@@ -335,14 +320,11 @@ size_t CsvReader::read(const std::string& filepath,
     std::cout << " done (" << file_mb << " MB, " << mmap_sec << "s)"
               << std::endl;
 
-    // -- Step 2: Scan for newline positions --
-
     std::cout << "  Step 2: Scanning for line boundaries..." << std::flush;
 
-    // Skip header line
     size_t header_end = 0;
     while (header_end < file_size && file_data[header_end] != '\n') header_end++;
-    header_end++;  // skip past header's \n
+    header_end++;
 
     // Build array of line start offsets
     std::vector<size_t> line_offsets;
@@ -359,7 +341,7 @@ size_t CsvReader::read(const std::string& filepath,
         }
         line_offsets.push_back(scan_pos);
         while (scan_pos < file_size && file_data[scan_pos] != '\n') scan_pos++;
-        scan_pos++;  // skip past \n
+        scan_pos++;
     }
 
     const size_t total_lines = line_offsets.size();
@@ -369,8 +351,6 @@ size_t CsvReader::read(const std::string& filepath,
 
     std::cout << " done (" << total_lines << " lines, "
               << scan_sec << "s)" << std::endl;
-
-    // -- Step 3: Parallel parse (direct-write to pre-allocated records) --
 
     size_t per_thread = total_lines / num_threads;
 
@@ -409,7 +389,7 @@ size_t CsvReader::read(const std::string& filepath,
         size_t valid = 0;
 
         for (size_t i = start; i < end; ++i) {
-            // Compute line start and length from mmap'd data
+
             size_t line_start = line_offsets[i];
             size_t line_end;
             if (i + 1 < total_lines) {
@@ -417,7 +397,8 @@ size_t CsvReader::read(const std::string& filepath,
             } else {
                 line_end = file_size;
             }
-            // Trim trailing \n and \r
+
+
             while (line_end > line_start &&
                    (file_data[line_end - 1] == '\n' ||
                     file_data[line_end - 1] == '\r')) {
@@ -444,12 +425,11 @@ size_t CsvReader::read(const std::string& filepath,
         total_parsed += thread_valid[t];
     }
 
-    // Free line offsets -- no longer needed (~336 MB)
+
     line_offsets.clear();
     line_offsets.shrink_to_fit();
 
-    // -- Step 4: Merge TextPools (offset adjustment, no record copying) --
-
+    // Merge TextPools
     auto tm0 = std::chrono::high_resolution_clock::now();
 
     for (int t = 0; t < num_threads; ++t) {
@@ -472,11 +452,9 @@ size_t CsvReader::read(const std::string& filepath,
         }
     }
 
-    // Free thread-local pools
     thread_pools.clear();
     thread_pools.shrink_to_fit();
 
-    // Compact if any lines were malformed (data shows 0 skipped typically)
     if (total_parsed < total_lines) {
         size_t write_pos = 0;
         for (size_t i = 0; i < total_lines; ++i) {
@@ -493,7 +471,6 @@ size_t CsvReader::read(const std::string& filepath,
     auto tm1 = std::chrono::high_resolution_clock::now();
     double merge_sec = std::chrono::duration<double>(tm1 - tm0).count();
 
-    // Unmap file
     munmap(const_cast<void*>(static_cast<const void*>(file_data)), file_size);
 
     double total_sec = std::chrono::duration<double>(tm1 - t_start).count();
@@ -509,8 +486,6 @@ size_t CsvReader::read(const std::string& filepath,
 
     return total_parsed;
 }
-
-// --- load_csv (replaces FileLoader) ---
 
 size_t load_csv(const std::string& filepath, DataStore& store) {
     std::cout << "Loading: " << filepath << std::endl;
@@ -532,4 +507,4 @@ size_t load_csv(const std::string& filepath, DataStore& store) {
     return count;
 }
 
-} // namespace parking
+}

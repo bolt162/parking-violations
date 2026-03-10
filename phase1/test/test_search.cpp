@@ -75,8 +75,6 @@ static DataStore build_test_store() {
     return store;
 }
 
-// --- Test LinearSearch ---
-
 static void test_linear_search() {
     std::cout << "\n=== LinearSearch ===" << std::endl;
 
@@ -149,8 +147,6 @@ static void test_linear_search() {
     ASSERT_EQ(fy24, 50u)
 }
 
-// --- Test IndexedSearch ---
-
 static void test_indexed_search() {
     std::cout << "\n=== IndexedSearch ===" << std::endl;
 
@@ -199,8 +195,6 @@ static void test_indexed_search() {
     ASSERT_EQ(agg2.counts.size(), 2u)
 }
 
-// --- Cross-validate: Linear vs Indexed give same results ---
-
 static void test_cross_validation() {
     std::cout << "\n=== Cross-Validation (Linear vs Indexed) ===" << std::endl;
 
@@ -237,18 +231,14 @@ static void test_cross_validation() {
 }
 
 int main() {
-    std::cout << "======================================" << std::endl;
     std::cout << "  Parking Violations Search Tests" << std::endl;
-    std::cout << "======================================" << std::endl;
 
     test_linear_search();
     test_indexed_search();
     test_cross_validation();
 
-    std::cout << "\n======================================" << std::endl;
     std::cout << "  Results: " << tests_passed << " passed, "
               << tests_failed << " failed" << std::endl;
-    std::cout << "======================================" << std::endl;
 
     return tests_failed > 0 ? 1 : 0;
 }
